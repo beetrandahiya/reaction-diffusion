@@ -34,13 +34,13 @@ const render = gpu.createKernel(function () {
 
     //reaction diffusion
 
-    var a = grid[this.thread.x][this.thread.y].a;
+    var a = grid[this.thread.x][this.thread.y][0];
     var b = grid[this.thread.x][this.thread.y].b;
 
     var a_next = a + (b - a) * 0.1;
     var b_next = b + (a - b) * 0.1;
 
-    nextGrid[this.thread.x][this.thread.y].a = a_next;
+    nextGrid[this.thread.x][this.thread.y][0] = a_next;
     nextGrid[this.thread.x][this.thread.y].b = b_next;
 
     this.color(a_next, b_next, 0,1);
@@ -49,7 +49,7 @@ const render = gpu.createKernel(function () {
 
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
-            var a = grid[i][j].a;
+            var a = grid[i][j][0];
             var b = grid[i][j].b;
             var c = map(a, 0, 1, 0, 1);
             var d = map(b, 0, 1, 0, 1);
@@ -71,4 +71,4 @@ const render = gpu.createKernel(function () {
 render();
 const canvas = render.canvas;
 
-document.getElementsByTagName('body')[0].appendChild(canvas);
+document.getElementsByTagName('body')[0][0]ppendChild(canvas);
