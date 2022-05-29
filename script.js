@@ -10,8 +10,8 @@ const calc=gpu.createKernel(function(arr){
 }).setOutput([512]);
 
 
-grid=[];
-nextGrid=[];
+var grid=[];
+var nextGrid=[];
 
 for(let i=0;i<512;i++){
     grid.push([]);
@@ -29,15 +29,41 @@ const render = gpu.createKernel(function () {
     }
     var w = this.constants.width;
     var h = this.constants.height;
+    var grid = this.constants.grid;
+    var nextGrid = this.constants.nextGrid;
 
     //reaction diffusion
 
-    
+    var a = grid[this.thread.x][this.thread.y].a;
+    var b = grid[this.thread.x][this.thread.y].b;
+
+    var a_next = a + (b - a) * 0.1;
+    var b_next = b + (a - b) * 0.1;
+
+    nextGrid[this.thread.x][this.thread.y].a = a_next;
+    nextGrid[this.thread.x][this.thread.y].b = b_next;
+
+    this.color(a_next, b_next, 0,1);
+
+    //drawing
+
+    for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+            var a = grid[i][j].a;
+            var b = grid[i][j].b;
+            var c = map(a, 0, 1, 0, 1);
+            var d = map(b, 0, 1, 0, 1);
+            this.color(c, d, 0);
+        }
+    }
+
 
 }, {
     constants: {
         width: 512,
-        height: 512
+        height: 512,
+        grid: grid,
+        nextGrid: nextGrid
     }
 }).setOutput([512, 512]).setGraphical(true);
 
