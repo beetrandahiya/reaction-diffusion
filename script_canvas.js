@@ -85,6 +85,8 @@ function draw() {
     requestAnimationFrame(draw);
 }
 
+
+
 function laplaceA(x, y) {
     var sumA = 0;
     sumA += grid[x][y].a * -1;

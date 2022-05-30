@@ -1,12 +1,10 @@
-const gpu = new GPU();
-
+const gpu = new GPU({mode : "gpu"});
 
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 ctx.clearRect(0, 0, canvas.width, canvas.height);
-var id = ctx.getImageData(0, 0, 500, 500);
-var pixels = id.data;
-
+var image = ctx.getImageData(0, 0, 500, 500);
+var pixels = image.data;
 
 width = 500;
 height = 500;
@@ -54,7 +52,6 @@ canvas.addEventListener('click', function (e) {
 //gpu shit
 const calcdiff = gpu.createKernel(function (grid) {
 
-
     var dA = this.constants.dA;
     var dB = this.constants.dB;
     var feed = this.constants.feed;
@@ -65,7 +62,6 @@ const calcdiff = gpu.createKernel(function (grid) {
     var b = grid[this.thread.y][this.thread.x][1];
     var valA = a + (dA * laplaceA(grid, this.thread.y, this.thread.x) - a * b * b + feed * (1 - a)) * dt;
     var valB = b + (dB * laplaceB(grid, this.thread.y, this.thread.x) + a * b * b - (k + feed) * b) * dt;
-
     valA = constrain(valA, 0, 1);
     valB = constrain(valB, 0, 1);
     //changing the indexes in laplacian
@@ -82,7 +78,6 @@ const calcdiff = gpu.createKernel(function (grid) {
         sumA += grid[x + 1][y - 1][0] * 0.05;
         return sumA;
     }
-
     function laplaceB(grid, x, y) {
         var sumB = 0;
         sumB += grid[x][y][1] * -1;
@@ -96,7 +91,6 @@ const calcdiff = gpu.createKernel(function (grid) {
         sumB += grid[x + 1][y - 1][1] * 0.05;
         return sumB;
     }
-
     function constrain(value, min, max) {
         if (value < min) {
             return min;
@@ -106,10 +100,7 @@ const calcdiff = gpu.createKernel(function (grid) {
             return value;
         }
     }
-
-
     return [valA, valB];
-
 }, {
     constants: {
         dA: dA,
@@ -122,38 +113,39 @@ const calcdiff = gpu.createKernel(function (grid) {
     }
 }).setOutput([width, height]);
 
+gpu.addFunction(HSLtoRGB).addFunction(map);
+const render = gpu.createKernel(function(next){
+    var x = this.thread.x;
+    var y = this.thread.y;
+
+    var a = next[x][y][0];
+    //var b = next[x][y][1];
+
+    var c= map(a, 0, 1, 0, 255);
+    var rgb = HSLtoRGB(c, 100, 50);
+
+    this.color(rgb[0], rgb[1], rgb[2],255);
+}).setOutput([width, height]).setGraphical(true);
+
+
+
+
 function draw() {
 
-
     next = calcdiff(grid);
-
-    for (var x = 0; x < width; x++) {
-        for (var y = 0; y < height; y++) {
-            var pix = (x + y * width) * 4;
-            var a = next[x][y][0];
-            var b = next[x][y][1];
-            var c = map(a, 0, 1, 0, 255);
-            var rgb = HSLtoRGB(c, 100, 50);
-            pixels[pix + 0] = rgb[0];
-            pixels[pix + 1] = rgb[1];
-            pixels[pix + 2] = rgb[2];
-            pixels[pix + 3] = 255;
-        }
-    }
-    ctx.putImageData(id, 0, 0);
-
+    render(next);
+    pixels = render.getPixels();
+    image.data.set(pixels);
+    ctx.putImageData(image, 0, 0);
     swap();
     requestAnimationFrame(draw);
 }
 
 
 
-
-    
 function HSLtoRGB(h, s, l) {
     s /= 100;
     l /= 100;
-
     let c = (1 - Math.abs(2 * l - 1)) * s,
         x = c * (1 - Math.abs((h / 60) % 2 - 1)),
         m = l - c / 2,
@@ -191,6 +183,7 @@ function HSLtoRGB(h, s, l) {
 
     return [r, g, b];
 }
+
 function swap() {
     var temp = grid;
     grid = next;
