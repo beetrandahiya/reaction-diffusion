@@ -51,9 +51,7 @@ canvas.addEventListener('click', function (e) {
             grid[x][y].b = 1;
         }
     }
-    draw();
 });
-
 function draw() {
     
     for (var x = 1; x < width - 1; x++) {
